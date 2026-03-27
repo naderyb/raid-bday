@@ -27,12 +27,12 @@ type BirthdayCardProps = {
   children?: ReactNode;
 };
 
-const CARD_SCALE = 0.25;
+const CARD_SCALE = 0.42; // Increased from 0.25 - much easier to click on mobile
 const CARD_WIDTH = 4 * CARD_SCALE;
 const CARD_HEIGHT = 3 * CARD_SCALE;
 const CAMERA_DISTANCE = 1.2;
 const CAMERA_Y_FLOOR = 0.8;
-const HOVER_LIFT = 0.04;
+const HOVER_LIFT = 0.12; // Increased for better visual feedback
 
 export function BirthdayCard({
   id,
@@ -183,27 +183,33 @@ export function BirthdayCard({
         {children}
       </group>
 
-      {/* Glow effect - point light under card */}
+      {/* Glow effect - point light under card - much stronger for visibility */}
       <pointLight
-        position={[0, -1, 0]}
+        position={[0, -1.2, 0]}
         color="#64c8ff"
-        intensity={isHovered || isActive ? 1.5 : 0.4}
-        distance={3}
+        intensity={isHovered || isActive ? 2.2 : 0.8}
+        distance={4}
       />
 
-      {/* Additional glow for hover state */}
+      {/* Additional glow for hover state - creates visible aura */}
       {(isHovered || isActive) && (
         <>
           <pointLight
-            position={[0.5, 0, 0.1]}
+            position={[0.8, 0, 0.15]}
             color="#a8e6ff"
-            intensity={0.8}
-            distance={2}
+            intensity={1.2}
+            distance={2.5}
           />
           <pointLight
-            position={[-0.5, 0, 0.1]}
+            position={[-0.8, 0, 0.15]}
             color="#a8e6ff"
-            intensity={0.8}
+            intensity={1.2}
+            distance={2.5}
+          />
+          <pointLight
+            position={[0, 0.8, 0.1]}
+            color="#c9f0ff"
+            intensity={1}
             distance={2}
           />
         </>
