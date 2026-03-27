@@ -381,6 +381,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [showHintOnce, setShowHintOnce] = useState(true);
   const [buttonFadingOut, setButtonFadingOut] = useState(false);
+  const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Detect mobile device
@@ -401,6 +402,14 @@ export default function App() {
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Mark assets as loaded for loading screen
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAssetsLoaded(true);
+    }, 2000); // 2 second minimum loading screen
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -554,6 +563,14 @@ export default function App() {
 
   return (
     <div className="App">
+      {/* Loading Screen */}
+      {!isAssetsLoaded && (
+        <div className="loading-screen">
+          <div className="spinner"></div>
+          <div className="loading-text">Loading...</div>
+        </div>
+      )}
+
       {!hasStarted && isMobile && (
         <div className="start-overlay">
           <button className="cta-button" onClick={handleTouchStart}>
