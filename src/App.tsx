@@ -660,10 +660,10 @@ export default function App() {
           <ConfiguredOrbitControls />
         </Suspense>
       </Canvas>
-      {hasAnimationCompleted && isCandleLit && isMobile && (
+      {hasAnimationCompleted && isCandleLit && (
         <div className={`action-overlay ${buttonFadingOut ? "fade-out" : ""}`}>
           <button className="cta-button" onClick={handleTouchStart}>
-            💨 Blow Out
+            {isMobile ? "💨 Blow Out" : "💨 PRESS SPACE / CLICK TO BLOW"}
           </button>
         </div>
       )}
