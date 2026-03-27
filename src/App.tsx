@@ -380,6 +380,7 @@ export default function App() {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showHintOnce, setShowHintOnce] = useState(true);
+  const [buttonFadingOut, setButtonFadingOut] = useState(false);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Detect mobile device
@@ -539,6 +540,7 @@ export default function App() {
       return;
     }
     if (hasAnimationCompleted && isCandleLit) {
+      setButtonFadingOut(true);
       setIsCandleLit(false);
       setFireworksActive(true);
     }
@@ -562,9 +564,7 @@ export default function App() {
 
       {/* Start hint for desktop */}
       {!hasStarted && !isMobile && showHintOnce && (
-        <div className="start-hint">
-          ⌨️ PRESS SPACE TO START
-        </div>
+        <div className="start-hint">⌨️ PRESS SPACE TO START</div>
       )}
 
       <div
@@ -593,9 +593,7 @@ export default function App() {
 
       {/* Cards clickable hint */}
       {sceneStarted && !hasAnimationCompleted && (
-        <div className="cards-hint">
-          ✨ Cards are clickable!
-        </div>
+        <div className="cards-hint">✨ Cards are clickable!</div>
       )}
 
       {hasAnimationCompleted && isCandleLit && (
@@ -646,7 +644,7 @@ export default function App() {
         </Suspense>
       </Canvas>
       {hasAnimationCompleted && isCandleLit && isMobile && (
-        <div className="action-overlay">
+        <div className={`action-overlay ${buttonFadingOut ? "fade-out" : ""}`}>
           <button className="cta-button" onClick={handleTouchStart}>
             💨 Blow Out
           </button>

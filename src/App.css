@@ -191,11 +191,39 @@ canvas {
 
 .action-overlay {
   position: absolute;
-  bottom: 4rem;
+  bottom: 8rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
   pointer-events: auto;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.action-overlay.fade-out {
+  animation: fadeOutFloat 0.6s ease-out forwards;
+}
+
+@keyframes fadeOutFloat {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-40px);
+    pointer-events: none;
+  }
 }
 
 .cta-button {
@@ -282,7 +310,7 @@ canvas {
   }
 
   .action-overlay {
-    bottom: 2rem;
+    bottom: 3rem;
   }
 
   .cards-hint {
@@ -318,6 +346,10 @@ canvas {
     padding: 1.1rem 2rem;
     font-size: clamp(0.9rem, 2vw, 1rem);
     min-height: 48px;
+  }
+
+  .action-overlay {
+    bottom: 2rem;
   }
 
   .cards-hint {
