@@ -27,12 +27,12 @@ type BirthdayCardProps = {
   children?: ReactNode;
 };
 
-const CARD_SCALE = 0.42; // Increased from 0.25 - much easier to click on mobile
+const CARD_SCALE = 0.25;
 const CARD_WIDTH = 4 * CARD_SCALE;
 const CARD_HEIGHT = 3 * CARD_SCALE;
 const CAMERA_DISTANCE = 1.2;
 const CAMERA_Y_FLOOR = 0.8;
-const HOVER_LIFT = 0.12; // Increased for better visual feedback
+const HOVER_LIFT = 0.04;
 
 export function BirthdayCard({
   id,
@@ -57,7 +57,7 @@ export function BirthdayCard({
 
   const defaultPosition = useMemo(
     () => new Vector3(...tablePosition),
-    [tablePosition],
+    [tablePosition]
   );
   const defaultQuaternion = useMemo(() => {
     const euler = new Euler(...tableRotation);
@@ -98,7 +98,7 @@ export function BirthdayCard({
       positionTarget.add(
         tmpDirection
           .copy(camera.getWorldDirection(tmpDirection))
-          .multiplyScalar(CAMERA_DISTANCE),
+          .multiplyScalar(CAMERA_DISTANCE)
       );
       positionTarget.add(cameraOffset);
       if (positionTarget.y < CAMERA_Y_FLOOR) {
@@ -128,7 +128,7 @@ export function BirthdayCard({
         setIsHovered(true);
       }
     },
-    [isActive],
+    [isActive]
   );
 
   const handlePointerOut = useCallback((event: ThreeEvent<PointerEvent>) => {
@@ -145,7 +145,7 @@ export function BirthdayCard({
       event.stopPropagation();
       onToggle(id);
     },
-    [id, onToggle],
+    [id, onToggle]
   );
 
   return (
@@ -182,38 +182,6 @@ export function BirthdayCard({
         </mesh>
         {children}
       </group>
-
-      {/* Glow effect - point light under card - much stronger for visibility */}
-      <pointLight
-        position={[0, -1.2, 0]}
-        color="#64c8ff"
-        intensity={isHovered || isActive ? 2.2 : 0.8}
-        distance={4}
-      />
-
-      {/* Additional glow for hover state - creates visible aura */}
-      {(isHovered || isActive) && (
-        <>
-          <pointLight
-            position={[0.8, 0, 0.15]}
-            color="#a8e6ff"
-            intensity={1.2}
-            distance={2.5}
-          />
-          <pointLight
-            position={[-0.8, 0, 0.15]}
-            color="#a8e6ff"
-            intensity={1.2}
-            distance={2.5}
-          />
-          <pointLight
-            position={[0, 0.8, 0.1]}
-            color="#c9f0ff"
-            intensity={1}
-            distance={2}
-          />
-        </>
-      )}
     </group>
   );
 }

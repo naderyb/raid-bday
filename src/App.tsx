@@ -378,39 +378,7 @@ export default function App() {
   const [isCandleLit, setIsCandleLit] = useState(true);
   const [fireworksActive, setFireworksActive] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [showHintOnce, setShowHintOnce] = useState(true);
-  const [buttonFadingOut, setButtonFadingOut] = useState(false);
-  const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Detect mobile device
-  useEffect(() => {
-    const isTouchDevice = () => {
-      return (
-        (typeof window !== "undefined" &&
-          (window.ontouchstart !== undefined ||
-            navigator.maxTouchPoints > 0)) ||
-        window.innerWidth < 1024
-      );
-    };
-    setIsMobile(isTouchDevice());
-
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Mark assets as loaded for loading screen
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAssetsLoaded(true);
-    }, 2000); // 2 second minimum loading screen
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const audio = new Audio("/music.mp3");
@@ -436,6 +404,15 @@ export default function App() {
       // ignore play errors (browser might block)
     });
   }, []);
+
+  const blowOutCandle = useCallback(() => {
+    if (!hasAnimationCompleted || !isCandleLit) {
+      return;
+    }
+
+    setIsCandleLit(false);
+    setFireworksActive(true);
+  }, [hasAnimationCompleted, isCandleLit]);
 
   const typingComplete = currentLineIndex >= TYPED_LINES.length;
   const typedLines = useMemo(() => {
@@ -527,33 +504,15 @@ export default function App() {
       if (!hasStarted) {
         playBackgroundMusic();
         setHasStarted(true);
-        setShowHintOnce(false);
         return;
       }
-      if (hasAnimationCompleted && isCandleLit) {
-        setIsCandleLit(false);
-        setFireworksActive(true);
-      }
+
+      blowOutCandle();
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
-
-  // Touch handlers for mobile
-  const handleTouchStart = useCallback(() => {
-    if (!hasStarted) {
-      playBackgroundMusic();
-      setHasStarted(true);
-      setShowHintOnce(false);
-      return;
-    }
-    if (hasAnimationCompleted && isCandleLit) {
-      setButtonFadingOut(true);
-      setIsCandleLit(false);
-      setFireworksActive(true);
-    }
-  }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
+  }, [hasStarted, blowOutCandle, playBackgroundMusic]);
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
@@ -563,27 +522,6 @@ export default function App() {
 
   return (
     <div className="App">
-      {/* Loading Screen */}
-      {!isAssetsLoaded && (
-        <div className="loading-screen">
-          <div className="spinner"></div>
-          <div className="loading-text">Loading...</div>
-        </div>
-      )}
-
-      {!hasStarted && isMobile && (
-        <div className="start-overlay">
-          <button className="cta-button" onClick={handleTouchStart}>
-            Tap to start
-          </button>
-        </div>
-      )}
-
-      {/* Start hint for desktop */}
-      {!hasStarted && !isMobile && showHintOnce && (
-        <div className="start-hint">⌨️ PRESS SPACE TO START</div>
-      )}
-
       <div
         className="background-overlay"
         style={{ opacity: backgroundOpacity }}
@@ -607,22 +545,25 @@ export default function App() {
           })}
         </div>
       </div>
-
-      {/* Cards clickable hint */}
-      {sceneStarted && !hasAnimationCompleted && (
-        <div className="cards-hint">✨ Cards are clickable!</div>
-      )}
-
-      {hasAnimationCompleted && isCandleLit && (
-        <div className="hint-overlay">
-          {isMobile
-            ? "📍 TAP TO BLOW OUT THE CANDLE"
-            : "press space to blow out the candle"}
+      {(hasAnimationCompleted || isScenePlaying) && (
+        <div className="interaction-overlay">
+          {hasAnimationCompleted && isCandleLit && (
+            <button
+              className="candle-button"
+              type="button"
+              onClick={blowOutCandle}
+            >
+              Blow out the candle
+            </button>
+          )}
+          {hasAnimationCompleted && isCandleLit && (
+            <div className="hint-overlay">press space or tap the button</div>
+          )}
+          <div className="card-hint">The birthday card is clickable.</div>
         </div>
       )}
       <Canvas
         gl={{ alpha: true }}
-        dpr={[1, 1.5]}
         style={{ background: "transparent" }}
         onCreated={({ gl }) => {
           gl.setClearColor("#000000", 0);
@@ -660,13 +601,6 @@ export default function App() {
           <ConfiguredOrbitControls />
         </Suspense>
       </Canvas>
-      {hasAnimationCompleted && isCandleLit && (
-        <div className={`action-overlay ${buttonFadingOut ? "fade-out" : ""}`}>
-          <button className="cta-button" onClick={handleTouchStart}>
-            {isMobile ? "💨 Blow Out" : "💨 PRESS SPACE / CLICK TO BLOW"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
