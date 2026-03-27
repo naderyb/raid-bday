@@ -2,6 +2,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 html,
@@ -22,6 +24,7 @@ body {
   overflow: hidden;
   position: relative;
   background: #0b0212;
+  font-family: "Courier New", Courier, monospace;
 }
 
 canvas {
@@ -55,12 +58,19 @@ canvas {
   display: inline-flex;
   flex-direction: column;
   gap: 0.35rem;
+  padding-left: 2rem;
 }
 
 .typed-cursor {
   display: inline-block;
   width: 0.1em;
   margin-left: 0.15em;
+  animation: blink 0.6s infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 .typed-line {
@@ -68,13 +78,24 @@ canvas {
   min-height: 1.25em;
 }
 
-.space-hint {
-  margin-top: 1.5rem;
+.start-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-family: "Courier New", Courier, monospace;
-  font-size: 0.85rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  opacity: 0.65;
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  color: rgba(255, 242, 228, 0.8);
+  text-shadow: 0 0 20px rgba(255, 200, 100, 0.5);
+  animation: fadeInOut 6s infinite;
+  pointer-events: none;
+  z-index: 3;
+  letter-spacing: 0.1em;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  20%, 80% { opacity: 1; }
 }
 
 .hint-overlay {
@@ -83,15 +104,48 @@ canvas {
   left: 50%;
   transform: translateX(-50%);
   font-family: "Courier New", Courier, monospace;
+  font-size: clamp(0.8rem, 2vw, 1.2rem);
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: rgba(255, 242, 228, 0.9);
   opacity: 0.85;
   pointer-events: none;
   z-index: 3;
+  animation: pulse 2s ease-in-out infinite;
 }
 
-/* Mobile-only action overlays (rendered conditionally in App) */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.cards-hint {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-family: "Courier New", Courier, monospace;
+  font-size: clamp(0.7rem, 1.5vw, 0.95rem);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(100, 200, 255, 0.8);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 3;
+  animation: slideInRight 0.5s ease-out, pulse 2.5s ease-in-out 1s infinite;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 0.8;
+    transform: translateX(0);
+  }
+}
+
+/* Mobile Overlays */
 .start-overlay {
   position: absolute;
   inset: 0;
@@ -100,11 +154,13 @@ canvas {
   justify-content: center;
   z-index: 4;
   pointer-events: auto;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
 }
 
 .action-overlay {
   position: absolute;
-  bottom: 6rem;
+  bottom: 4rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -116,8 +172,136 @@ canvas {
   color: #3b2200;
   border: none;
   border-radius: 12px;
-  padding: 0.9rem 1.25rem;
-  font-size: 1rem;
+  padding: 1.2rem 2rem;
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(255, 200, 100, 0.3);
+  transition: all 0.3s ease;
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
+}
+
+.cta-button:active {
+  transform: scale(0.95);
+  box-shadow: 0 4px 12px rgba(255, 200, 100, 0.5);
+}
+
+.cta-button:hover {
+  background: linear-gradient(180deg, #fff0d1, #ffd9a3);
+  box-shadow: 0 10px 32px rgba(255, 200, 100, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Card Glow Effect (set via CSS for 3D scene) */
+.card-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(100, 200, 255, 0.6),
+              inset 0 0 20px rgba(100, 200, 255, 0.3);
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(100, 200, 255, 0.4),
+                inset 0 0 15px rgba(100, 200, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(100, 200, 255, 0.8),
+                inset 0 0 25px rgba(100, 200, 255, 0.4);
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 1024px) {
+  .typed-text {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    padding-left: 1.5rem;
+  }
+
+  .hint-overlay {
+    font-size: clamp(0.75rem, 2vw, 1rem);
+    bottom: 1.5rem;
+  }
+
+  .start-overlay {
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .cta-button {
+    padding: 1.5rem 2.5rem;
+    font-size: 1.1rem;
+    min-width: 160px;
+    border-radius: 16px;
+  }
+
+  .action-overlay {
+    bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .typed-text {
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
+    padding-left: 1rem;
+    gap: 0.25rem;
+  }
+
+  .hint-overlay {
+    font-size: 0.8rem;
+    bottom: 1.2rem;
+    letter-spacing: 0.15em;
+  }
+
+  .start-hint {
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+  }
+
+  .cta-button {
+    padding: 1rem 2rem;
+    font-size: 0.95rem;
+  }
+
+  canvas {
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 480px) {
+  .typed-text {
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    padding-left: 0.8rem;
+    gap: 0.2rem;
+  }
+
+  .hint-overlay {
+    font-size: 0.7rem;
+    bottom: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+
+  .start-hint {
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+  }
+
+  .cta-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .action-overlay {
+    bottom: 1.5rem;
+  }
+
+  .start-overlay {
+    padding: 1rem;
+  }
+}
   font-weight: 700;
   letter-spacing: 0.08em;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);

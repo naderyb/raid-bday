@@ -378,12 +378,28 @@ export default function App() {
   const [isCandleLit, setIsCandleLit] = useState(true);
   const [fireworksActive, setFireworksActive] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showHintOnce, setShowHintOnce] = useState(true);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
-  const isTouchDevice = useMemo(() => {
-    return (
-      (typeof window !== "undefined" && "ontouchstart" in window) ||
-      navigator.maxTouchPoints > 0
-    );
+
+  // Detect mobile device
+  useEffect(() => {
+    const isTouchDevice = () => {
+      return (
+        (typeof window !== "undefined" &&
+          (window.ontouchstart !== undefined ||
+            navigator.maxTouchPoints > 0)) ||
+        window.innerWidth < 1024
+      );
+    };
+    setIsMobile(isTouchDevice());
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -501,6 +517,7 @@ export default function App() {
       if (!hasStarted) {
         playBackgroundMusic();
         setHasStarted(true);
+        setShowHintOnce(false);
         return;
       }
       if (hasAnimationCompleted && isCandleLit) {
@@ -513,19 +530,19 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
 
-  const handleStart = useCallback(() => {
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback(() => {
     if (!hasStarted) {
       playBackgroundMusic();
       setHasStarted(true);
+      setShowHintOnce(false);
+      return;
     }
-  }, [hasStarted, playBackgroundMusic]);
-
-  const handleBlowCandle = useCallback(() => {
     if (hasAnimationCompleted && isCandleLit) {
       setIsCandleLit(false);
       setFireworksActive(true);
     }
-  }, [hasAnimationCompleted, isCandleLit]);
+  }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
@@ -535,13 +552,21 @@ export default function App() {
 
   return (
     <div className="App">
-      {!hasStarted && isTouchDevice && (
+      {!hasStarted && isMobile && (
         <div className="start-overlay">
-          <button className="cta-button" onClick={handleStart}>
-            {isTouchDevice ? "Tap to start" : "Press space to start"}
+          <button className="cta-button" onClick={handleTouchStart}>
+            Tap to start
           </button>
         </div>
       )}
+
+      {/* Start hint for desktop */}
+      {!hasStarted && !isMobile && showHintOnce && (
+        <div className="start-hint">
+          ⌨️ PRESS SPACE TO START
+        </div>
+      )}
+
       <div
         className="background-overlay"
         style={{ opacity: backgroundOpacity }}
@@ -565,10 +590,18 @@ export default function App() {
           })}
         </div>
       </div>
+
+      {/* Cards clickable hint */}
+      {sceneStarted && !hasAnimationCompleted && (
+        <div className="cards-hint">
+          ✨ Cards are clickable!
+        </div>
+      )}
+
       {hasAnimationCompleted && isCandleLit && (
         <div className="hint-overlay">
-          {isTouchDevice
-            ? "tap to blow out the candle"
+          {isMobile
+            ? "📍 TAP TO BLOW OUT THE CANDLE"
             : "press space to blow out the candle"}
         </div>
       )}
@@ -612,10 +645,10 @@ export default function App() {
           <ConfiguredOrbitControls />
         </Suspense>
       </Canvas>
-      {hasAnimationCompleted && isCandleLit && isTouchDevice && (
+      {hasAnimationCompleted && isCandleLit && isMobile && (
         <div className="action-overlay">
-          <button className="cta-button" onClick={handleBlowCandle}>
-            {isTouchDevice ? "Tap to blow out" : "Press space to blow out"}
+          <button className="cta-button" onClick={handleTouchStart}>
+            💨 Blow Out
           </button>
         </div>
       )}

@@ -57,7 +57,7 @@ export function BirthdayCard({
 
   const defaultPosition = useMemo(
     () => new Vector3(...tablePosition),
-    [tablePosition]
+    [tablePosition],
   );
   const defaultQuaternion = useMemo(() => {
     const euler = new Euler(...tableRotation);
@@ -98,7 +98,7 @@ export function BirthdayCard({
       positionTarget.add(
         tmpDirection
           .copy(camera.getWorldDirection(tmpDirection))
-          .multiplyScalar(CAMERA_DISTANCE)
+          .multiplyScalar(CAMERA_DISTANCE),
       );
       positionTarget.add(cameraOffset);
       if (positionTarget.y < CAMERA_Y_FLOOR) {
@@ -128,7 +128,7 @@ export function BirthdayCard({
         setIsHovered(true);
       }
     },
-    [isActive]
+    [isActive],
   );
 
   const handlePointerOut = useCallback((event: ThreeEvent<PointerEvent>) => {
@@ -145,7 +145,7 @@ export function BirthdayCard({
       event.stopPropagation();
       onToggle(id);
     },
-    [id, onToggle]
+    [id, onToggle],
   );
 
   return (
@@ -182,6 +182,32 @@ export function BirthdayCard({
         </mesh>
         {children}
       </group>
+
+      {/* Glow effect - point light under card */}
+      <pointLight
+        position={[0, -1, 0]}
+        color="#64c8ff"
+        intensity={isHovered || isActive ? 1.5 : 0.4}
+        distance={3}
+      />
+
+      {/* Additional glow for hover state */}
+      {(isHovered || isActive) && (
+        <>
+          <pointLight
+            position={[0.5, 0, 0.1]}
+            color="#a8e6ff"
+            intensity={0.8}
+            distance={2}
+          />
+          <pointLight
+            position={[-0.5, 0, 0.1]}
+            color="#a8e6ff"
+            intensity={0.8}
+            distance={2}
+          />
+        </>
+      )}
     </group>
   );
 }
