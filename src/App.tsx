@@ -20,6 +20,8 @@ import { BirthdayCard } from "./components/BirthdayCard";
 
 import "./App.css";
 
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
@@ -27,16 +29,12 @@ const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-type AnimatedSceneProps = {
-  isPlaying: boolean;
-  onBackgroundFadeChange?: (opacity: number) => void;
-  onEnvironmentProgressChange?: (progress: number) => void;
-  candleLit: boolean;
-  onAnimationComplete?: () => void;
-  cards: ReadonlyArray<BirthdayCardConfig>;
-  activeCardId: string | null;
-  onToggleCard: (id: string) => void;
-};
+/** Returns true when the device is primarily touch-driven. */
+const isTouchDevice = () =>
+  typeof window !== "undefined" &&
+  (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
+
+// ─── Animation constants ─────────────────────────────────────────────────────
 
 const CAKE_START_Y = 10;
 const CAKE_END_Y = 0;
@@ -56,6 +54,8 @@ const CANDLE_DROP_START =
 
 const totalAnimationTime = CANDLE_DROP_START + CANDLE_DROP_DURATION;
 
+// ─── Camera / orbit constants ─────────────────────────────────────────────────
+
 const ORBIT_TARGET = new Vector3(0, 1, 0);
 const ORBIT_INITIAL_RADIUS = 3;
 const ORBIT_INITIAL_HEIGHT = 1;
@@ -64,6 +64,8 @@ const ORBIT_MIN_DISTANCE = 2;
 const ORBIT_MAX_DISTANCE = 8;
 const ORBIT_MIN_POLAR = Math.PI * 0;
 const ORBIT_MAX_POLAR = Math.PI / 2;
+
+// ─── Background fade constants ────────────────────────────────────────────────
 
 const BACKGROUND_FADE_DURATION = 1;
 const BACKGROUND_FADE_OFFSET = 0;
@@ -75,6 +77,8 @@ const BACKGROUND_FADE_START = Math.max(
   BACKGROUND_FADE_END - BACKGROUND_FADE_DURATION,
   0,
 );
+
+// ─── Typing sequence ──────────────────────────────────────────────────────────
 
 const TYPED_LINES = [
   "> tina",
@@ -88,6 +92,8 @@ const TYPED_LINES = [
 const TYPED_CHAR_DELAY = 100;
 const POST_TYPING_SCENE_DELAY = 1000;
 const CURSOR_BLINK_INTERVAL = 480;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type BirthdayCardConfig = {
   id: string;
@@ -104,6 +110,19 @@ const BIRTHDAY_CARDS: ReadonlyArray<BirthdayCardConfig> = [
     rotation: [-Math.PI / 2, 0, Math.PI / 3],
   },
 ];
+
+// ─── AnimatedScene ────────────────────────────────────────────────────────────
+
+type AnimatedSceneProps = {
+  isPlaying: boolean;
+  onBackgroundFadeChange?: (opacity: number) => void;
+  onEnvironmentProgressChange?: (progress: number) => void;
+  candleLit: boolean;
+  onAnimationComplete?: () => void;
+  cards: ReadonlyArray<BirthdayCardConfig>;
+  activeCardId: string | null;
+  onToggleCard: (id: string) => void;
+};
 
 function AnimatedScene({
   isPlaying,
@@ -151,9 +170,7 @@ function AnimatedScene({
     const table = tableGroup.current;
     const candle = candleGroup.current;
 
-    if (!cake || !table || !candle) {
-      return;
-    }
+    if (!cake || !table || !candle) return;
 
     if (!hasPrimedRef.current) {
       cake.position.set(0, CAKE_START_Y, 0);
@@ -191,6 +208,7 @@ function AnimatedScene({
     const elapsed = clock.elapsedTime - animationStartRef.current;
     const clampedElapsed = clamp(elapsed, 0, totalAnimationTime);
 
+    // Cake descent
     const cakeProgress = clamp(clampedElapsed / CAKE_DESCENT_DURATION, 0, 1);
     const cakeEase = easeOutCubic(cakeProgress);
     cake.position.y = lerp(CAKE_START_Y, CAKE_END_Y, cakeEase);
@@ -200,6 +218,7 @@ function AnimatedScene({
     cake.rotation.x = 0;
     cake.rotation.z = 0;
 
+    // Table slide
     let tableZ = TABLE_START_Z;
     if (clampedElapsed >= TABLE_SLIDE_START) {
       const tableProgress = clamp(
@@ -207,28 +226,30 @@ function AnimatedScene({
         0,
         1,
       );
-      const tableEase = easeOutCubic(tableProgress);
-      tableZ = lerp(TABLE_START_Z, TABLE_END_Z, tableEase);
+      tableZ = lerp(TABLE_START_Z, TABLE_END_Z, easeOutCubic(tableProgress));
     }
     table.position.set(0, 0, tableZ);
     table.rotation.set(0, 0, 0);
 
+    // Candle drop
     if (clampedElapsed >= CANDLE_DROP_START) {
-      if (!candle.visible) {
-        candle.visible = true;
-      }
+      if (!candle.visible) candle.visible = true;
       const candleProgress = clamp(
         (clampedElapsed - CANDLE_DROP_START) / CANDLE_DROP_DURATION,
         0,
         1,
       );
-      const candleEase = easeOutCubic(candleProgress);
-      candle.position.y = lerp(CANDLE_START_Y, CANDLE_END_Y, candleEase);
+      candle.position.y = lerp(
+        CANDLE_START_Y,
+        CANDLE_END_Y,
+        easeOutCubic(candleProgress),
+      );
     } else {
       candle.visible = false;
       candle.position.set(0, CANDLE_START_Y, 0);
     }
 
+    // Background fade
     if (clampedElapsed < BACKGROUND_FADE_START) {
       emitBackgroundOpacity(1);
       emitEnvironmentProgress(0);
@@ -239,13 +260,11 @@ function AnimatedScene({
         1,
       );
       const eased = easeOutCubic(fadeProgress);
-      const backgroundOpacity = 1 - eased;
-      emitBackgroundOpacity(backgroundOpacity);
-      emitEnvironmentProgress(1 - backgroundOpacity);
+      emitBackgroundOpacity(1 - eased);
+      emitEnvironmentProgress(eased);
     }
 
-    const animationDone = clampedElapsed >= totalAnimationTime;
-    if (animationDone) {
+    if (clampedElapsed >= totalAnimationTime) {
       cake.position.set(0, CAKE_END_Y, 0);
       cake.rotation.set(0, 0, 0);
       table.position.set(0, 0, TABLE_END_Z);
@@ -311,6 +330,8 @@ function AnimatedScene({
   );
 }
 
+// ─── ConfiguredOrbitControls ──────────────────────────────────────────────────
+
 function ConfiguredOrbitControls() {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const camera = useThree((state) => state.camera);
@@ -321,8 +342,7 @@ function ConfiguredOrbitControls() {
       ORBIT_INITIAL_HEIGHT,
       Math.cos(ORBIT_INITIAL_AZIMUTH) * ORBIT_INITIAL_RADIUS,
     );
-    const cameraPosition = ORBIT_TARGET.clone().add(offset);
-    camera.position.copy(cameraPosition);
+    camera.position.copy(ORBIT_TARGET.clone().add(offset));
     camera.lookAt(ORBIT_TARGET);
 
     const controls = controlsRef.current;
@@ -341,22 +361,20 @@ function ConfiguredOrbitControls() {
       maxDistance={ORBIT_MAX_DISTANCE}
       minPolarAngle={ORBIT_MIN_POLAR}
       maxPolarAngle={ORBIT_MAX_POLAR}
+      // Larger touch sensitivity for mobile
+      rotateSpeed={isTouchDevice() ? 0.6 : 1}
+      zoomSpeed={isTouchDevice() ? 0.8 : 1}
     />
   );
 }
 
-type EnvironmentBackgroundControllerProps = {
-  intensity: number;
-};
+// ─── EnvironmentBackgroundController ─────────────────────────────────────────
 
-function EnvironmentBackgroundController({
-  intensity,
-}: EnvironmentBackgroundControllerProps) {
+function EnvironmentBackgroundController({ intensity }: { intensity: number }) {
   const scene = useThree((state) => state.scene);
 
   useEffect(() => {
     if ("backgroundIntensity" in scene) {
-      // Cast required because older typings might not include backgroundIntensity yet.
       (
         scene as typeof scene & { backgroundIntensity: number }
       ).backgroundIntensity = intensity;
@@ -365,6 +383,19 @@ function EnvironmentBackgroundController({
 
   return null;
 }
+
+// ─── SwipeHint (mobile-only animated indicator) ───────────────────────────────
+
+function SwipeHint() {
+  return (
+    <div className="swipe-hint" aria-hidden="true">
+      <span className="swipe-arrow">↑</span>
+      <span className="swipe-label">swipe up to blow</span>
+    </div>
+  );
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [hasStarted, setHasStarted] = useState(false);
@@ -378,7 +409,21 @@ export default function App() {
   const [isCandleLit, setIsCandleLit] = useState(true);
   const [fireworksActive, setFireworksActive] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [isTouch] = useState(isTouchDevice);
+
+  // DPR — cap at 2 on mobile to save GPU bandwidth
+  const dpr = useMemo<[number, number]>(
+    () => (isTouch ? [1, 2] : [1, window.devicePixelRatio ?? 2]),
+    [isTouch],
+  );
+
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Touch / swipe state
+  const touchStartYRef = useRef<number | null>(null);
+  const SWIPE_THRESHOLD = 60; // px upward to count as "blow"
+
+  // ── Audio ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const audio = new Audio("/music.mp3");
@@ -393,40 +438,29 @@ export default function App() {
 
   const playBackgroundMusic = useCallback(() => {
     const audio = backgroundAudioRef.current;
-    if (!audio) {
-      return;
-    }
-    if (!audio.paused) {
-      return;
-    }
+    if (!audio || !audio.paused) return;
     audio.currentTime = 0;
-    void audio.play().catch(() => {
-      // ignore play errors (browser might block)
-    });
+    void audio.play().catch(() => {});
   }, []);
 
-  const blowOutCandle = useCallback(() => {
-    if (!hasAnimationCompleted || !isCandleLit) {
-      return;
-    }
+  // ── Blow-out candle ──────────────────────────────────────────────────────
 
+  const blowOutCandle = useCallback(() => {
+    if (!hasAnimationCompleted || !isCandleLit) return;
     setIsCandleLit(false);
     setFireworksActive(true);
   }, [hasAnimationCompleted, isCandleLit]);
 
-  const typingComplete = currentLineIndex >= TYPED_LINES.length;
-  const typedLines = useMemo(() => {
-    if (TYPED_LINES.length === 0) {
-      return [""];
-    }
+  // ── Typing logic ─────────────────────────────────────────────────────────
 
+  const typingComplete = currentLineIndex >= TYPED_LINES.length;
+
+  const typedLines = useMemo(() => {
+    if (TYPED_LINES.length === 0) return [""];
     return TYPED_LINES.map((line, index) => {
-      if (typingComplete || index < currentLineIndex) {
-        return line;
-      }
-      if (index === currentLineIndex) {
+      if (typingComplete || index < currentLineIndex) return line;
+      if (index === currentLineIndex)
         return line.slice(0, Math.min(currentCharIndex, line.length));
-      }
       return "";
     });
   }, [currentCharIndex, currentLineIndex, typingComplete]);
@@ -452,9 +486,10 @@ export default function App() {
 
     if (typingComplete) {
       if (!sceneStarted) {
-        const handle = window.setTimeout(() => {
-          setSceneStarted(true);
-        }, POST_TYPING_SCENE_DELAY);
+        const handle = window.setTimeout(
+          () => setSceneStarted(true),
+          POST_TYPING_SCENE_DELAY,
+        );
         return () => window.clearTimeout(handle);
       }
       return;
@@ -466,7 +501,6 @@ export default function App() {
         setCurrentCharIndex((prev) => prev + 1);
         return;
       }
-
       let nextLineIndex = currentLineIndex + 1;
       while (
         nextLineIndex < TYPED_LINES.length &&
@@ -474,7 +508,6 @@ export default function App() {
       ) {
         nextLineIndex += 1;
       }
-
       setCurrentLineIndex(nextLineIndex);
       setCurrentCharIndex(0);
     }, TYPED_CHAR_DELAY);
@@ -489,30 +522,63 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    const handle = window.setInterval(() => {
-      setCursorVisible((prev) => !prev);
-    }, CURSOR_BLINK_INTERVAL);
+    const handle = window.setInterval(
+      () => setCursorVisible((prev) => !prev),
+      CURSOR_BLINK_INTERVAL,
+    );
     return () => window.clearInterval(handle);
   }, []);
 
+  // ── Keyboard (desktop) ───────────────────────────────────────────────────
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" && event.key !== " ") {
-        return;
-      }
+      if (event.code !== "Space" && event.key !== " ") return;
       event.preventDefault();
       if (!hasStarted) {
         playBackgroundMusic();
         setHasStarted(true);
         return;
       }
-
       blowOutCandle();
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [hasStarted, blowOutCandle, playBackgroundMusic]);
+
+  // ── Touch events (mobile) ────────────────────────────────────────────────
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      touchStartYRef.current = e.touches[0]?.clientY ?? null;
+
+      // First tap starts the experience
+      if (!hasStarted) {
+        playBackgroundMusic();
+        setHasStarted(true);
+      }
+    },
+    [hasStarted, playBackgroundMusic],
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const startY = touchStartYRef.current;
+      if (startY === null) return;
+
+      const endY = e.changedTouches[0]?.clientY ?? startY;
+      const deltaY = startY - endY; // positive = swipe-up
+
+      touchStartYRef.current = null;
+
+      if (deltaY >= SWIPE_THRESHOLD) {
+        blowOutCandle();
+      }
+    },
+    [blowOutCandle],
+  );
+
+  // ── Card toggle ──────────────────────────────────────────────────────────
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
@@ -520,8 +586,15 @@ export default function App() {
 
   const isScenePlaying = hasStarted && sceneStarted;
 
+  // ── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <div className="App">
+    <div
+      className="App"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* ── Typing intro overlay ── */}
       <div
         className="background-overlay"
         style={{ opacity: backgroundOpacity }}
@@ -543,8 +616,17 @@ export default function App() {
               </span>
             );
           })}
+
+          {/* Tap-to-start hint shown only before interaction */}
+          {!hasStarted && (
+            <span className="start-hint">
+              {isTouch ? "tap anywhere to begin" : "press space to begin"}
+            </span>
+          )}
         </div>
       </div>
+
+      {/* ── Interaction overlay ── */}
       {(hasAnimationCompleted || isScenePlaying) && (
         <div className="interaction-overlay">
           {hasAnimationCompleted && isCandleLit && (
@@ -553,17 +635,24 @@ export default function App() {
               type="button"
               onClick={blowOutCandle}
             >
-              Blow out the candle
+              🕯️ Blow out the candle
             </button>
           )}
-          {hasAnimationCompleted && isCandleLit && (
-            <div className="hint-overlay">press space or tap the button</div>
+
+          {hasAnimationCompleted && isCandleLit && isTouch && <SwipeHint />}
+
+          {hasAnimationCompleted && isCandleLit && !isTouch && (
+            <div className="hint-overlay">press space or click the button</div>
           )}
+
           <div className="card-hint">The birthday card is clickable.</div>
         </div>
       )}
+
+      {/* ── Three.js Canvas ── */}
       <Canvas
-        gl={{ alpha: true }}
+        gl={{ alpha: true, antialias: !isTouch }} // skip MSAA on mobile
+        dpr={dpr}
         style={{ background: "transparent" }}
         onCreated={({ gl }) => {
           gl.setClearColor("#000000", 0);
