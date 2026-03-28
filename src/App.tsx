@@ -81,12 +81,15 @@ const BACKGROUND_FADE_START = Math.max(
 // ─── Typing sequence ──────────────────────────────────────────────────────────
 
 const TYPED_LINES = [
-  "> tina",
+  "> raiddd",
   "...",
   "> today is your birthday",
   "...",
-  "> so i made you this computer program",
+  "> and since u dont like gifts i made u this, bcz what u gonna do? say no???",
   "...",
+  "hhhh 7mar",
+  "...",
+  "> w bl3",
   "٩(◕‿◕)۶ ٩(◕‿◕)۶ ٩(◕‿◕)۶",
 ];
 const TYPED_CHAR_DELAY = 100;
